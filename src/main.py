@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from pandasai import PandasAI
 from pandasai.llm.openai import OpenAI
+from pandasai.llm.open_assistant import OpenAssistant
+from pandasai.llm.starcoder import Starcoder
 import os
 
 response = None
@@ -35,12 +37,18 @@ file_format = {
     "xml": pd.read_xml,
 }
 
+models = {
+    "OpenAI" : OpenAI,
+    "Starcoder" : Starcoder,
+    "Open-Assistant" : OpenAssistant
+}
+
 def make_request(question_input: str):
     if uploaded_file is not None:
         ext = os.path.splitext(uploaded_file.name)[1][1:].lower()
         dataframe = file_format[ext](uploaded_file)
 
-    llm = OpenAI(api_token=api_key)
+    llm = models[option](api_token=api_key)
     pandas_ai = PandasAI(llm, 
                          conversational=True,
                          verbose=_verbose,
