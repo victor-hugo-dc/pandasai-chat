@@ -6,8 +6,6 @@ from pandasai.llm.open_assistant import OpenAssistant
 from pandasai.llm.starcoder import Starcoder
 import os
 
-response = None
-
 file_format = {
     "csv": pd.read_csv,
     "xls": pd.read_excel,
@@ -38,67 +36,51 @@ file_format = {
 }
 
 models = {
-    "OpenAI" : OpenAI,
-    "Starcoder" : Starcoder,
-    "Open-Assistant" : OpenAssistant
+    "OpenAI": OpenAI,
+    "Starcoder": Starcoder,
+    "Open-Assistant": OpenAssistant
 }
 
-def make_request(question_input: str):
-    if uploaded_file is not None:
-        ext = os.path.splitext(uploaded_file.name)[1][1:].lower()
-        dataframe = file_format[ext](uploaded_file)
+@st.cache_data
+def load_data(uploaded_file):
+    ext = os.path.splitext(uploaded_file.name)[1][1:].lower()
+    if ext in file_format:
+        return file_format[ext](uploaded_file)
+    else:
+        st.error(f"Unsupported file format: {ext}")
+        return None
 
+def make_request(question_input, dataframe, option, api_key):
     llm = models[option](api_token=api_key)
-    pandas_ai = PandasAI(llm, 
-                         conversational=True,
-                         verbose=_verbose,
-                         enforce_privacy=_enforce_privacy)
-    return pandas_ai.run(
-        data_frame = dataframe, 
-        prompt = question_input,
-        is_conversational_answer = True
-    )
-
+    pandas_ai = PandasAI(llm, conversational=False)
+    return pandas_ai.run(dataframe, prompt=question_input, is_conversational_answer=True)
 
 st.header("PandasAI Chat")
-
-st.markdown("""---""")
+st.markdown("---")
 
 question_input = st.text_input("Enter question")
 rerun_button = st.button("Rerun")
 
-
 left, right = st.columns([1, 2])
 with left:
-    option = st.selectbox(
-    'Model',
-    ('OpenAI', 'Starcoder', 'Open-Assistant'))
+    model_option = st.selectbox('Model', ('OpenAI', 'Starcoder', 'Open-Assistant'))
 
-# Add components to the second column
 with right:
     api_key = st.text_input('API Key', '')
 
 uploaded_file = st.file_uploader("Upload a file", type=list(file_format.keys()))
 
-with st.expander("Advanced Options"):
-    _verbose = st.checkbox("Show Details About Python Code generated")
-    _enforce_privacy = st.checkbox("Enforce Privacy About Personal Data", value=True)
-
-st.markdown("""---""")
+st.markdown("---")
 
 if question_input and uploaded_file and api_key:
-    response = make_request(question_input)
+    dataframe = load_data(uploaded_file)
+    response = make_request(question_input, dataframe, model_option, api_key)
 else:
-    pass
+    response = None
 
 if rerun_button:
-    response = make_request(question_input)
-else:
-    pass
+    response = make_request(question_input, dataframe, model_option, api_key)
 
 if response:
     st.write("Response:")
     st.write(response)
-else:
-    pass
-
