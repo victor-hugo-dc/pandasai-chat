@@ -34,9 +34,15 @@ with left:
 
 with right:
     api_key = st.text_input('API Key', '', type = 'password')
+    if not api_key:
+        st.info(f"Please input API Token for {model_option}.")
 
 question_input = None
 uploaded_file = st.file_uploader("Upload a file", type=list(file_format.keys()))
+
+if not uploaded_file:
+    st.info("Please upload your dataset to begin asking questions!")
+
 if uploaded_file:
     question_input = st.text_input("Enter question")
 
