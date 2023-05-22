@@ -5,15 +5,14 @@ from streamlit_chat import message
 from pandasai import PandasAI
 from constants import file_format, models
 import matplotlib.pyplot as plt
+from io import BytesIO
+from PIL import Image
 
 @st.cache_data
 def load_data(uploaded_file):
     ext = os.path.splitext(uploaded_file.name)[1][1:].lower()
     if ext in file_format:
         return file_format[ext](uploaded_file)
-    else:
-        st.error(f"Unsupported file format: {ext}")
-        return None
 
 def generate_response(question_input, dataframe, option, api_key):
     llm = models[option](api_key)
@@ -28,6 +27,9 @@ if "generated" not in st.session_state:
 
 if "past" not in st.session_state:
     st.session_state["past"] = []
+
+if "plots" not in st.session_state:
+    st.session_state["plots"] = []
 
 left, right = st.columns([1, 2])
 with left:
@@ -56,7 +58,20 @@ if question_input and uploaded_file and api_key:
 
         if len(plt.get_fignums()) > 0:
             fig = plt.gcf()
-            st.pyplot(fig)
+            buffer = BytesIO()
+            fig.savefig(buffer, format='png')
+            buffer.seek(0)
+
+            image = Image.open(buffer)
+
+            width, height = image.size
+            new_width = int(width * 0.6)
+            new_height = int(height * 0.6)
+            resized_image = image.resize((new_width, new_height))
+
+            st.session_state.plots.append(resized_image)
+        else:
+            st.session_state.plots.append("")
 
         st.session_state.past.append(question_input)
         st.session_state.generated.append(response)
@@ -65,6 +80,8 @@ else:
 
 if "generated" in st.session_state and st.session_state['generated']:
     for i in range(len(st.session_state['generated'])-1, -1, -1):
+        if st.session_state["plots"][i] != "":
+            st.image(st.session_state["plots"][i], use_column_width=True)
         message(st.session_state["generated"][i], key=str(i))
         message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
     
