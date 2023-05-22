@@ -2,7 +2,6 @@ import os
 import streamlit as st
 from streamlit_chat import message
 
-import pandas as pd
 from pandasai import PandasAI
 from constants import file_format, models
 
@@ -29,24 +28,26 @@ if "generated" not in st.session_state:
 if "past" not in st.session_state:
     st.session_state["past"] = []
 
-question_input = st.text_input("Enter question")
-
 left, right = st.columns([1, 2])
 with left:
     model_option = st.selectbox('Model', models.keys())
 
 with right:
-    api_key = st.text_input('API Key', '')
+    api_key = st.text_input('API Key', '', type = 'password')
 
+question_input = None
 uploaded_file = st.file_uploader("Upload a file", type=list(file_format.keys()))
+if uploaded_file:
+    question_input = st.text_input("Enter question")
 
 st.markdown("---")
 
 if question_input and uploaded_file and api_key:
-    dataframe = load_data(uploaded_file)
-    response = generate_response(question_input, dataframe, model_option, api_key)
-    st.session_state.past.append(question_input)
-    st.session_state.generated.append(response)
+    with st.spinner("Generating..."):
+        dataframe = load_data(uploaded_file)
+        response = generate_response(question_input, dataframe, model_option, api_key)
+        st.session_state.past.append(question_input)
+        st.session_state.generated.append(response)
 else:
     response = None
 
