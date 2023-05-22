@@ -4,6 +4,7 @@ from streamlit_chat import message
 
 from pandasai import PandasAI
 from constants import file_format, models
+import matplotlib.pyplot as plt
 
 @st.cache_data
 def load_data(uploaded_file):
@@ -20,7 +21,7 @@ def generate_response(question_input, dataframe, option, api_key):
     return pandas_ai(dataframe, prompt=question_input, is_conversational_answer=True)    
 
 st.set_page_config(page_title="PandasAI Chat", page_icon=":panda_face:")
-st.title("PandasAI Chat")
+st.title("PandasAI Chat :panda_face:")
 
 if "generated" not in st.session_state:
     st.session_state["generated"] = []
@@ -52,6 +53,11 @@ if question_input and uploaded_file and api_key:
     with st.spinner("Generating..."):
         dataframe = load_data(uploaded_file)
         response = generate_response(question_input, dataframe, model_option, api_key)
+
+        if len(plt.get_fignums()) > 0:
+            fig = plt.gcf()
+            st.pyplot(fig)
+
         st.session_state.past.append(question_input)
         st.session_state.generated.append(response)
 else:
