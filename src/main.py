@@ -17,7 +17,7 @@ def load_data(uploaded_file):
 def generate_response(question_input, dataframe, option, api_key):
     llm = models[option](api_key)
     pandas_ai = PandasAI(llm, conversational=False)
-    return pandas_ai.run(dataframe, prompt=question_input, is_conversational_answer=True)
+    return pandas_ai(dataframe, prompt=question_input, is_conversational_answer=True)    
 
 st.set_page_config(page_title="PandasAI Chat", page_icon=":panda_face:")
 st.title("PandasAI Chat")
