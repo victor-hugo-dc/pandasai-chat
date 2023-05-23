@@ -5,8 +5,6 @@ from streamlit_chat import message
 from pandasai import PandasAI
 from constants import file_format, models
 import matplotlib.pyplot as plt
-from io import BytesIO
-from PIL import Image
 
 @st.cache_data
 def load_data(uploaded_file):
@@ -16,8 +14,8 @@ def load_data(uploaded_file):
 
 def generate_response(question_input, dataframe, option, api_key):
     llm = models[option](api_key)
-    pandas_ai = PandasAI(llm, conversational=False)
-    return pandas_ai(dataframe, prompt=question_input, is_conversational_answer=True)    
+    pandas_ai = PandasAI(llm)
+    return pandas_ai(dataframe, prompt = question_input, is_conversational_answer = True)    
 
 st.set_page_config(page_title="PandasAI Chat", page_icon=":panda_face:")
 st.title("PandasAI Chat :panda_face:")
@@ -51,37 +49,32 @@ if uploaded_file:
 
 st.markdown("---")
 
+response = None
 if question_input and uploaded_file and api_key:
     with st.spinner("Generating..."):
         dataframe = load_data(uploaded_file)
-        response = generate_response(question_input, dataframe, model_option, api_key)
+        try:
+            response = generate_response(question_input, dataframe, model_option, api_key)
+
+        except Exception as e:
+            st.error("An error occurred: either your API token is invalid \
+                     or no code was found in the response generated.")
 
         if len(plt.get_fignums()) > 0:
             fig = plt.gcf()
-            buffer = BytesIO()
-            fig.savefig(buffer, format='png')
-            buffer.seek(0)
-
-            image = Image.open(buffer)
-
-            width, height = image.size
-            new_width = int(width * 0.6)
-            new_height = int(height * 0.6)
-            resized_image = image.resize((new_width, new_height))
-
-            st.session_state.plots.append(resized_image)
+            st.session_state.plots.append(fig)
         else:
             st.session_state.plots.append("None")
 
-        st.session_state.past.append(question_input)
-        st.session_state.generated.append(response)
-else:
-    response = None
+        if response:
+            st.session_state.past.append(question_input)
+            st.session_state.generated.append(response)
 
 if "generated" in st.session_state and st.session_state['generated']:
     for i in range(len(st.session_state['generated'])-1, -1, -1):
         if st.session_state["plots"][i] != "None":
-            st.image(st.session_state["plots"][i], use_column_width=True)
+            st.pyplot(st.session_state["plots"][i])
+
         message(st.session_state["generated"][i], key=str(i))
         message(st.session_state['past'][i], is_user=True, key=str(i) + '_user')
     
