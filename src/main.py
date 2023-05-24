@@ -45,6 +45,9 @@ if not uploaded_file:
     st.info("Please upload your dataset to begin asking questions!")
 
 if uploaded_file:
+    dataframe = load_data(uploaded_file)
+    with st.expander(uploaded_file.name):
+        st.write(dataframe.head())
     question_input = st.text_input("Enter question")
 
 st.markdown("---")
@@ -52,7 +55,6 @@ st.markdown("---")
 response = None
 if question_input and uploaded_file and api_key:
     with st.spinner("Generating..."):
-        dataframe = load_data(uploaded_file)
         try:
             response = generate_response(question_input, dataframe, model_option, api_key)
 
