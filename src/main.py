@@ -12,10 +12,13 @@ def load_data(uploaded_file):
     if ext in file_format:
         return file_format[ext](uploaded_file)
 
-def generate_response(question_input, dataframe, option, api_key):
+def generate_response(question_input, dataframes, option, api_key):
     llm = models[option](api_key)
     pandas_ai = PandasAI(llm)
-    return pandas_ai(dataframe, prompt = question_input, is_conversational_answer = True)    
+    if len(dataframes) == 1:
+        return pandas_ai(dataframes[0], prompt = question_input, is_conversational_answer = True) 
+    else:
+        return pandas_ai(dataframes, prompt = question_input, is_conversational_answer = True)    
 
 st.set_page_config(page_title="PandasAI Chat", page_icon=":panda_face:")
 st.title("PandasAI Chat :panda_face:")
@@ -39,24 +42,29 @@ with right:
         st.info(f"Please input API Token for {model_option}.")
 
 question_input = None
-uploaded_file = st.file_uploader("Upload a file", type=list(file_format.keys()))
+uploaded_files = st.file_uploader("Upload a file", type=list(file_format.keys()), accept_multiple_files=True)
+dataframes = []
 
-if not uploaded_file:
-    st.info("Please upload your dataset to begin asking questions!")
+if not uploaded_files:
+    st.info("Please upload your dataset(s) to begin asking questions!")
 
-if uploaded_file:
-    dataframe = load_data(uploaded_file)
-    with st.expander(uploaded_file.name):
-        st.write(dataframe.head())
+else:
+    for uploaded_file in uploaded_files:
+        dataframe = load_data(uploaded_file)
+        dataframes.append(dataframe)
+
+        with st.expander(uploaded_file.name):
+            st.write(dataframe.head())
+
     question_input = st.text_input("Enter question")
 
 st.markdown("---")
 
 response = None
-if question_input and uploaded_file and api_key:
+if question_input and uploaded_files and api_key:
     with st.spinner("Generating..."):
         try:
-            response = generate_response(question_input, dataframe, model_option, api_key)
+            response = generate_response(question_input, dataframes, model_option, api_key)
 
         except Exception as e:
             st.error("An error occurred: either your API token is invalid \
